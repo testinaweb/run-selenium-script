@@ -98,7 +98,7 @@ function install {
     esac
 
     # download selenium-server-standalone
-    local SELENIUMVERSION="2.44/selenium-server-standalone-2.44.0.jar"
+    local SELENIUMVERSION=$(curl -silent http://selenium-release.storage.googleapis.com | grep -oPm1 "(?<=<Key>)[^<]+" | grep selenium-server-standalone | tail -n 1)
     if [ ! -f ${SELENIUMVERSION##*/} ]; then
         echo "Download selenium-server..."
         wget http://selenium-release.storage.googleapis.com/${SELENIUMVERSION} > /dev/null 2>&1 &
@@ -160,7 +160,7 @@ function start {
     fi
     if [ ! $(getSeleniumServerPid) ] ; then
         echo "Starting selenium-server..."
-        DISPLAY=:99 nohup /usr/bin/java -jar selenium-server-standalone-2.44.0.jar &
+        DISPLAY=:99 nohup /usr/bin/java -jar selenium-server-standalone*.jar &
         echo -e "[${GREEN}Started${NO_COLOUR}]"
     else
         echo "selenium-server is running..."
