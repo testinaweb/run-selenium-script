@@ -45,17 +45,68 @@ $YELLOW Options:$NO_COLOUR
 "
 }
 
-# --install
-function install {
+# get the linux distribution family
+function getLinuxDistribution {
+    if [ -f /etc/debian_version ]; then
+        OS="Debian"  # Debian, Ubuntu or Debian like
+        VER=$(cat /etc/debian_version)
+    elif [ -f /etc/redhat-release ]; then
+        OS="RedHat" # Red Hat and CentOS
+        VER=$(cat /etc/redhat-release)
+    else
+        OS=$(uname -s)
+        VER=$(uname -r)
+    fi
+
+    echo ${OS}
+}
+
+# install packages for Red Hat like Linux systems
+function installRedHatPackages {
     echo "Installing required packages to run Selenium with Firefox: firefox Xvfb libXfont Xorg java..."
     yum -y install firefox Xvfb libXfont Xorg java > /dev/null 2>&1 &
     if [ $(pidof yum) ] ; then
         spinner $(pidof yum)
     fi
-    echo "Download selenium-server..."
-    wget http://selenium-release.storage.googleapis.com/2.44/selenium-server-standalone-2.44.0.jar > /dev/null 2>&1 &
-    if  [ $(pidof wget) ] ; then
-        spinner $(pidof wget)
+}
+
+# install packages for Debian like Linux systems
+function installDebianPackages {
+    echo "Installing required packages to run Selenium with Firefox: firefox xvfb libxfont1 libxft2 default-jre xorg openbox..."
+    apt-get update && apt-get -y install firefox xvfb libxfont1 libxft2 default-jre xorg openbox > /dev/null 2>&1 &
+    if [ $(pidof apt-get) ] ; then
+        spinner $(pidof apt-get)
+    fi
+}
+
+# --install
+function install {
+    # check permission
+    if [ `whoami` != "root" ]; then
+        echo "You must be root."
+        return 0
+    fi
+
+    # install packages
+    case $(getLinuxDistribution) in
+        "RedHat")  installRedHatPackages
+            ;;
+        "Debian")  installDebianPackages
+            ;;
+        *) echo -e "${RED}This linux distribution is not supported${NO_COLOUR}"
+            ;;
+    esac
+
+    # download selenium-server-standalone
+    local SELENIUMVERSION="2.44/selenium-server-standalone-2.44.0.jar"
+    if [ ! -f ${SELENIUMVERSION##*/} ]; then
+        echo "Download selenium-server..."
+        wget http://selenium-release.storage.googleapis.com/${SELENIUMVERSION} > /dev/null 2>&1 &
+        if  [ $(pidof wget) ] ; then
+            spinner $(pidof wget)
+        fi
+    else
+        echo "${SELENIUMVERSION##*/} already exists. Nothing to do."
     fi
     echo -e "[${GREEN}Done${NO_COLOUR}]"
 }
